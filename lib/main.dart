@@ -43,26 +43,46 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        label: Text('Settings'),
+        onPressed: () {
+          // setState(() {
+          //   _offsets.clear();
+          // });
+          showModalBottomSheet(
+            context: context,
+            builder: (BuildContext context) {
+              return Container(
+                height: MediaQuery.of(context).size.height * 0.25,
+                width: MediaQuery.of(context).size.width,
+                color: Colors.grey[20],
+                child: Center(
+                  child: Icon(Icons.clear) // TODO: make the modal do more stuff
+                )
+              );
+            }
+          );
+        },
+        icon: Icon(Icons.settings),
+        backgroundColor: Colors.blue,
+      ),
       body: GestureDetector(
         onPanDown: (details) {
           final renderBox = context.findRenderObject() as RenderBox;
-          final localPostion = renderBox.globalToLocal(details.globalPosition);
+          final localPosition = renderBox.globalToLocal(details.globalPosition);
           setState(() {
-            _offsets.add(localPostion);
+            _offsets.add(localPosition);
           });
         },
         onPanUpdate: (details) {
           final renderBox = context.findRenderObject() as RenderBox;
-          final localPostion = renderBox.globalToLocal(details.globalPosition);
+          final localPosition = renderBox.globalToLocal(details.globalPosition);
           setState(() {
-            _offsets.add(localPostion);
+            _offsets.add(localPosition);
           });
         },
         onPanEnd: (details) {
@@ -72,7 +92,7 @@ class _MyHomePageState extends State<MyHomePage> {
         },
         child: Center(
           child: CustomPaint(
-            painter: FlipBookPainter(_offsets),
+            painter: HeibanPainter(_offsets),
             child: Container(
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,
@@ -84,10 +104,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class FlipBookPainter extends CustomPainter {
+class HeibanPainter extends CustomPainter {
   final List<Offset> offsets;
 
-  FlipBookPainter(this.offsets): super();
+  HeibanPainter(this.offsets): super();
 
   @override
   void paint(Canvas canvas, Size size) {
