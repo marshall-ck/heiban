@@ -47,29 +47,23 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        label: Text('Settings'),
-        onPressed: () {
-          // setState(() {
-          //   _offsets.clear();
-          // });
-          showModalBottomSheet(
-            context: context,
-            builder: (BuildContext context) {
-              return Container(
-                height: MediaQuery.of(context).size.height * 0.25,
-                width: MediaQuery.of(context).size.width,
-                color: Colors.grey[20],
-                child: Center(
-                  child: Icon(Icons.clear) // TODO: make the modal do more stuff
-                )
-              );
-            }
-          );
-        },
-        icon: Icon(Icons.settings),
-        backgroundColor: Colors.blue,
-      ),
+        floatingActionButton: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            FloatingActionButton(
+                onPressed: () {
+                  // TODO
+                },
+                child: Icon(Icons.edit)
+              ),
+            FloatingActionButton(
+                onPressed: () {
+                  // TODO
+                },
+                child: Icon(Icons.backspace_sharp)
+            ),
+          ],
+        ),
       body: GestureDetector(
         onPanDown: (details) {
           final renderBox = context.findRenderObject() as RenderBox;
