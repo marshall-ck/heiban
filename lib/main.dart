@@ -40,6 +40,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final _offsets = <Offset>[];
+  String _currentTool = "pencil";
 
   @override
   Widget build(BuildContext context) {
@@ -51,14 +52,16 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
             FloatingActionButton(
+                backgroundColor: _currentTool == "pencil" ? Colors.red : Colors.grey,
                 onPressed: () {
-                  // TODO
+                  setState(() => _currentTool = "pencil");
                 },
                 child: Icon(Icons.edit)
               ),
             FloatingActionButton(
+                backgroundColor: _currentTool == "eraser" ? Colors.red : Colors.grey,
                 onPressed: () {
-                  // TODO
+                  setState(() => _currentTool = "eraser");
                 },
                 child: Icon(Icons.backspace_sharp)
             ),
@@ -69,20 +72,18 @@ class _MyHomePageState extends State<MyHomePage> {
           final renderBox = context.findRenderObject() as RenderBox;
           final localPosition = renderBox.globalToLocal(details.globalPosition);
           setState(() {
-            _offsets.add(localPosition);
+            updateOffsets(localPosition);
           });
         },
         onPanUpdate: (details) {
           final renderBox = context.findRenderObject() as RenderBox;
           final localPosition = renderBox.globalToLocal(details.globalPosition);
           setState(() {
-            _offsets.add(localPosition);
+            updateOffsets(localPosition);
           });
         },
         onPanEnd: (details) {
-          setState(() {
-            _offsets.add(null);
-          });
+          setState(() => _offsets.add(null));
         },
         child: Center(
           child: CustomPaint(
@@ -95,6 +96,26 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     );
+  }
+
+  void updateOffsets(Offset localPosition) {
+    if (_currentTool == "pencil") {
+      _offsets.add(localPosition);
+    } else if (_currentTool == "eraser") {
+      var offsetsToRemove = _offsets.where((element) =>
+      element != null &&
+          (element.dx >= localPosition.dx - 10 && element.dx <= localPosition.dx + 10) &&
+          (element.dy >= localPosition.dy - 10 && element.dy <= localPosition.dy + 10)
+      );
+      offsetsToRemove.forEach((e) => _offsets.remove(e));
+    }
+  }
+}
+
+class Tool {
+  String name;
+  Tool(this.name) {
+    name = this.name;
   }
 }
 
