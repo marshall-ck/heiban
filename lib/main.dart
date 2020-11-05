@@ -37,9 +37,8 @@ class CanvasPage extends StatefulWidget {
 }
 
 class _CanvasPageState extends State<CanvasPage> {
-  final _offsets = <Offset>[]; // used for line drawing
-  final _paths = <Path>[]; // used for sticky notes
-  var _currentOffset; // used for images/stickyNotes, to anchor the init position
+  final _lineOffsets = <Offset>[]; // used for line drawing
+  final _stickyOffsets = <Offset>[]; // used for sticky notes
   var _currentTool = ToolType.pencil;
 
   @override
@@ -56,7 +55,6 @@ class _CanvasPageState extends State<CanvasPage> {
                 onPressed: () {
                   setState(() {
                     _currentTool = ToolType.pencil;
-                    _currentOffset = null;
                   });
                 },
                 child: Icon(Icons.edit)
@@ -66,7 +64,6 @@ class _CanvasPageState extends State<CanvasPage> {
                 onPressed: () {
                   setState(() {
                     _currentTool = ToolType.eraser;
-                    _currentOffset = null;
                   });
                 },
                 child: Icon(Icons.backspace_sharp)
@@ -76,7 +73,6 @@ class _CanvasPageState extends State<CanvasPage> {
                 onPressed: () {
                   setState(() {
                     _currentTool = ToolType.stickyNote;
-                    _currentOffset = null;
                   });
                   },
                 child: Icon(Icons.note)
@@ -88,7 +84,6 @@ class _CanvasPageState extends State<CanvasPage> {
           final renderBox = context.findRenderObject() as RenderBox;
           final localPosition = renderBox.globalToLocal(details.globalPosition);
           setState(() {
-            _currentOffset = localPosition;
             updateCanvas(localPosition);
           });
         },
@@ -96,18 +91,17 @@ class _CanvasPageState extends State<CanvasPage> {
           final renderBox = context.findRenderObject() as RenderBox;
           final localPosition = renderBox.globalToLocal(details.globalPosition);
           setState(() {
-            _currentOffset = localPosition;
             updateCanvas(localPosition);
           });
         },
         onPanEnd: (details) {
           setState(() {
-            _offsets.add(null);
+            _lineOffsets.add(null);
           });
         },
         child: Center(
             child: CustomPaint(
-                painter: buildCustomPainter,
+                painter: CanvasPainter(_stickyOffsets, _lineOffsets),
                 child: Container(
                   height: MediaQuery.of(context).size.height,
                   width: MediaQuery.of(context).size.width,
@@ -118,34 +112,19 @@ class _CanvasPageState extends State<CanvasPage> {
     );
   }
 
-  CustomPainter get buildCustomPainter {
-    switch(_currentTool) {
-      case ToolType.pencil: {
-        return LinePainter(_paths, _offsets);
-      }
-      break;
-      case ToolType.eraser: {
-        return LinePainter(_paths, _offsets);
-      }
-      break;
-      case ToolType.stickyNote: {
-        return StickyNotePainter(_paths, _offsets, _currentOffset);
-      }
-      break;
-    }
-  }
-
   void updateCanvas(Offset localPosition) {
     if (_currentTool == ToolType.pencil) {
-      _offsets.add(localPosition);
+      _lineOffsets.add(localPosition);
+    } else if (_currentTool == ToolType.stickyNote) {
+      _stickyOffsets.add(localPosition);
     } else if (_currentTool == ToolType.eraser) {
       // TODO: eraser is buggy
-      var offsetsToRemove = _offsets.where((element) =>
+      var offsetsToRemove = _lineOffsets.where((element) =>
       element != null &&
           (element.dx >= localPosition.dx - 10 && element.dx <= localPosition.dx + 10) &&
           (element.dy >= localPosition.dy - 10 && element.dy <= localPosition.dy + 10)
       );
-      offsetsToRemove.forEach((e) => _offsets.remove(e));
+      offsetsToRemove.forEach((e) => _lineOffsets.remove(e));
     }
   }
 }
