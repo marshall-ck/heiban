@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -37,8 +38,52 @@ class CanvasPage extends StatefulWidget {
 }
 
 class LineElement {
-  final List<Offset> lineOffsets;
+  final int radius = 10;
+  List<Offset> lineOffsets;
   LineElement(this.lineOffsets);
+
+  bool withinRadius(Offset localPosition) {
+    var offsets = lineOffsets
+        .where((offset) => offset != null)
+        .where((offset) =>
+          localPosition.dx <= offset.dx + radius &&
+          localPosition.dx >= offset.dx - radius &&
+          localPosition.dy <= offset.dy + radius &&
+          localPosition.dy >= offset.dy - radius);
+    return offsets.isNotEmpty;
+  }
+
+  void move(double dx, double dy) {
+    var newLineOffsets = <Offset>[];
+    for (var i = 0; i < lineOffsets.length - 1; i++) {
+      var offset = lineOffsets[i];
+      if (offset == null) {
+        newLineOffsets.add(null);
+      } else {
+        newLineOffsets.add(Offset(offset.dx + dx, offset.dy + dy));
+      }
+    }
+    lineOffsets = newLineOffsets;
+  }
+
+  HighLightRectElement getRect() {
+    var dx = lineOffsets.where((offset) => offset != null).map((e) => e.dx).reduce(min);
+    var dy = lineOffsets.where((offset) => offset != null).map((e) => e.dy).reduce(min);
+    var width = lineOffsets.where((offset) => offset != null).map((e) => e.dx).reduce(max) - dx;
+    var height = lineOffsets.where((offset) => offset != null).map((e) => e.dy).reduce(max) - dy;
+
+    return HighLightRectElement(dx, dy, width, height);
+  }
+}
+
+class HighLightRectElement {
+  final double dx;
+  final double dy;
+  final double width;
+  final double height;
+
+  HighLightRectElement(this.dx, this.dy, this.width, this.height);
+  HighLightRectElement.empty(): this(0, 0, null, null);
 }
 
 class _CanvasPageState extends State<CanvasPage> {
@@ -47,6 +92,7 @@ class _CanvasPageState extends State<CanvasPage> {
 
   final _lineElements = <LineElement>[];
   var _currentLine = new LineElement(<Offset>[]);
+  var _highlightRect = HighLightRectElement.empty();
   var canvasElements = <Widget>[]; // TODO: all types of drawings should have a common baseType: <CanvasElement>
 
   void _onItemTapped(int index) {
@@ -89,17 +135,15 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
       body: GestureDetector(
         onPanDown: (details) {
-          print("onPanDown");
-          print("currentLine count: ${_currentLine.lineOffsets.length}");
-          print("lineElements count: ${_lineElements.length}");
-
+          // print("onPanDown");
+          // print("currentLine count: ${_currentLine.lineOffsets.length}");
+          // print("lineElements count: ${_lineElements.length}");
           final renderBox = context.findRenderObject() as RenderBox;
           final localPosition = renderBox.globalToLocal(details.globalPosition);
           setState(() {
-            if (_currentTool == ToolType.pencil) {
-              _currentLine.lineOffsets.add(localPosition);
-            }
+            if (_currentTool == ToolType.pencil) { _currentLine.lineOffsets.add(localPosition); }
             if (_currentTool == ToolType.eraser) { handleEraserEvent(localPosition); }
+            if (_currentTool == ToolType.selector) { handleSelectorEvent(localPosition); }
           });
         },
         onPanUpdate: (details) {
@@ -108,6 +152,21 @@ class _CanvasPageState extends State<CanvasPage> {
           setState(() {
             if (_currentTool == ToolType.pencil) { _currentLine.lineOffsets.add(localPosition); }
             if (_currentTool == ToolType.eraser) { handleEraserEvent(localPosition); }
+            if (_currentTool == ToolType.selector) {
+              print("onPanUpdate, localPosition: ${localPosition}");
+              // TODO: move offsets
+              // 1. find lineElement
+              // 2. offset the element based offset
+              var lineElement = _lineElements.firstWhere((lineElement) =>
+                  lineElement.withinRadius(localPosition) ,orElse: () => null);
+
+              if (lineElement != null) {
+                // _currentLine = new LineElement(List.from(lineElement.lineOffsets));
+                // _lineElements.remove(lineElement);
+                // _currentLine.move(10.0, 10.0);
+                lineElement.move(10.0, 10.0);
+              }
+            }
           });
         },
         onPanEnd: (details) {
@@ -122,7 +181,7 @@ class _CanvasPageState extends State<CanvasPage> {
         },
         child: Center(
             child: CustomPaint(
-                painter: CanvasPainter(_lineElements, _currentLine),
+                painter: CanvasPainter(_lineElements, _currentLine, _highlightRect),
                 child: Container(
                   height: MediaQuery.of(context).size.height,
                   width: MediaQuery.of(context).size.width,
@@ -141,20 +200,8 @@ class _CanvasPageState extends State<CanvasPage> {
   void handleEraserEvent(Offset localPosition) {
     // TODO: weird bug on not fully removing last line element
     if (_lineElements.isNotEmpty) {
-      final delta = 10;
-
-      // TODO: refactor this to lineElement model
-      var lineElement = _lineElements.firstWhere((lineElement) {
-        var offsets = lineElement.lineOffsets
-            .where((offset) => offset != null).where((offset) =>
-        localPosition.dx <= offset.dx + delta &&
-            localPosition.dx >= offset.dx - delta &&
-            localPosition.dy <= offset.dy + delta &&
-            localPosition.dy >= offset.dy - delta
-        );
-        return offsets.isNotEmpty;
-      }, orElse: null);
-
+      var lineElement = _lineElements.firstWhere((lineElement) =>
+          lineElement.withinRadius(localPosition) ,orElse: () => null);
       if (lineElement != null) { _lineElements.remove(lineElement); }
     }
 
@@ -164,6 +211,14 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void handleSelectorEvent(Offset localPosition) {
-    // TODO: add selector event for drag
+    var lineElement = _lineElements.firstWhere((lineElement) =>
+        lineElement.withinRadius(localPosition) ,orElse: () => null);
+
+    // TODO: draw a rectangle around lineOffsets
+    if (lineElement != null) {
+      _highlightRect = lineElement.getRect();
+    } else {
+      _highlightRect = HighLightRectElement.empty();
+    }
   }
 }

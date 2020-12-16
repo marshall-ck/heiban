@@ -7,8 +7,9 @@ import 'package:heiban/sticky_note.dart';
 class CanvasPainter extends CustomPainter {
   final List<LineElement> lineElements;
   final LineElement currentLine;
+  final HighLightRectElement highlightRect;
 
-  CanvasPainter(this.lineElements, this.currentLine): super();
+  CanvasPainter(this.lineElements, this.currentLine, this.highlightRect): super();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -17,9 +18,39 @@ class CanvasPainter extends CustomPainter {
         ..isAntiAlias = true
         ..strokeWidth = 3;
 
+
+
     paintLines(canvas, linePaint, currentLine.lineOffsets);
     for (var i = 0; i < lineElements.length-1; i++) {
       paintLines(canvas, linePaint, lineElements[i].lineOffsets);
+    }
+
+    // paint highlight rect
+    if (highlightRect.width != null && highlightRect.height != null) {
+      final highlightPaint = Paint()
+        ..color = Colors.redAccent
+        ..isAntiAlias = true
+        ..strokeWidth = 1;
+
+      canvas.drawLine(
+          Offset(highlightRect.dx, highlightRect.dy),
+          Offset(highlightRect.dx, highlightRect.dy + highlightRect.height),
+          highlightPaint);
+
+      canvas.drawLine(
+          Offset(highlightRect.dx, highlightRect.dy),
+          Offset(highlightRect.dx + highlightRect.width, highlightRect.dy),
+          highlightPaint);
+
+      canvas.drawLine(
+          Offset(highlightRect.dx + highlightRect.width, highlightRect.dy),
+          Offset(highlightRect.dx + highlightRect.width, highlightRect.dy + highlightRect.height),
+          highlightPaint);
+
+      canvas.drawLine(
+          Offset(highlightRect.dx, highlightRect.dy + highlightRect.height),
+          Offset(highlightRect.dx + highlightRect.width, highlightRect.dy + highlightRect.height),
+          highlightPaint);
     }
   }
 
