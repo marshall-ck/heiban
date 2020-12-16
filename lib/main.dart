@@ -89,6 +89,10 @@ class _CanvasPageState extends State<CanvasPage> {
       ),
       body: GestureDetector(
         onPanDown: (details) {
+          print("onPanDown");
+          print("currentLine count: ${_currentLine.lineOffsets.length}");
+          print("lineElements count: ${_lineElements.length}");
+
           final renderBox = context.findRenderObject() as RenderBox;
           final localPosition = renderBox.globalToLocal(details.globalPosition);
           setState(() {
@@ -102,19 +106,17 @@ class _CanvasPageState extends State<CanvasPage> {
           final renderBox = context.findRenderObject() as RenderBox;
           final localPosition = renderBox.globalToLocal(details.globalPosition);
           setState(() {
-            if (_currentTool == ToolType.pencil) {
-              _currentLine.lineOffsets.add(localPosition);
-            }
+            if (_currentTool == ToolType.pencil) { _currentLine.lineOffsets.add(localPosition); }
             if (_currentTool == ToolType.eraser) { handleEraserEvent(localPosition); }
           });
         },
         onPanEnd: (details) {
           if (_currentTool == ToolType.pencil) {
-            // BUG: the lines are getting bigger
+            // NOTE: _currentLine is a cache for all lines, divided by null
             var _newLine = new LineElement(List.from(_currentLine.lineOffsets));
             setState(() {
-              _currentLine.lineOffsets.add(null);
               _lineElements.add(_newLine);
+              _currentLine.lineOffsets.add(null);
             });
           }
         },
@@ -137,10 +139,28 @@ class _CanvasPageState extends State<CanvasPage> {
   }
 
   void handleEraserEvent(Offset localPosition) {
-    if (_lineElements.isEmpty == false) {
-      _lineElements.removeWhere((lineElement) => lineElement.lineOffsets.contains(localPosition));
+    // TODO: weird bug on not fully removing last line element
+    if (_lineElements.isNotEmpty) {
+      final delta = 10;
+
+      // TODO: refactor this to lineElement model
+      var lineElement = _lineElements.firstWhere((lineElement) {
+        var offsets = lineElement.lineOffsets
+            .where((offset) => offset != null).where((offset) =>
+        localPosition.dx <= offset.dx + delta &&
+            localPosition.dx >= offset.dx - delta &&
+            localPosition.dy <= offset.dy + delta &&
+            localPosition.dy >= offset.dy - delta
+        );
+        return offsets.isNotEmpty;
+      }, orElse: null);
+
+      if (lineElement != null) { _lineElements.remove(lineElement); }
     }
-    _currentLine = new LineElement(<Offset>[]);
+
+    if (_currentLine.lineOffsets.isNotEmpty) {
+      _currentLine.lineOffsets.clear();
+    }
   }
 
   void handleSelectorEvent(Offset localPosition) {

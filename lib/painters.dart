@@ -21,7 +21,6 @@ class CanvasPainter extends CustomPainter {
     for (var i = 0; i < lineElements.length-1; i++) {
       paintLines(canvas, linePaint, lineElements[i].lineOffsets);
     }
-
   }
 
   void paintLines(Canvas canvas, Paint paint, List<Offset> lineOffsets) {
