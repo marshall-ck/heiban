@@ -10,7 +10,7 @@ void main() {
 enum ToolType {
   pencil,
   eraser,
-  stickyNote
+  selector,
 }
 
 class MyApp extends StatelessWidget {
@@ -36,75 +36,95 @@ class CanvasPage extends StatefulWidget {
   _CanvasPageState createState() => _CanvasPageState();
 }
 
+class LineElement {
+  final List<Offset> lineOffsets;
+  LineElement(this.lineOffsets);
+}
+
 class _CanvasPageState extends State<CanvasPage> {
-  final _lineOffsets = <Offset>[]; // used for line drawing
-  final _stickyOffsets = <Offset>[]; // used for sticky notes
   var _currentTool = ToolType.pencil;
+  int _selectedIndex = 0;
+
+  final _lineElements = <LineElement>[];
+  var _currentLine = new LineElement(<Offset>[]);
+  var canvasElements = <Widget>[]; // TODO: all types of drawings should have a common baseType: <CanvasElement>
+
+  void _onItemTapped(int index) {
+    setState(() { _selectedIndex = index; });
+
+    switch (index) {
+      case 0: { setState(() { _currentTool = ToolType.pencil; }); }
+      break;
+
+      case 1: { setState(() { _currentTool = ToolType.eraser; }); }
+      break;
+
+      case 2: { setState(() { _currentTool = ToolType.selector; }); }
+      break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-        floatingActionButton: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            FloatingActionButton(
-                backgroundColor: _currentTool == ToolType.pencil ? Colors.red : Colors.grey,
-                onPressed: () {
-                  setState(() {
-                    _currentTool = ToolType.pencil;
-                  });
-                },
-                child: Icon(Icons.edit)
-              ),
-            FloatingActionButton(
-                backgroundColor: _currentTool == ToolType.eraser ? Colors.red : Colors.grey,
-                onPressed: () {
-                  setState(() {
-                    _currentTool = ToolType.eraser;
-                  });
-                },
-                child: Icon(Icons.backspace_sharp)
-            ),
-            FloatingActionButton(
-                backgroundColor: _currentTool == ToolType.stickyNote ? Colors.red : Colors.grey,
-                onPressed: () {
-                  setState(() {
-                    _currentTool = ToolType.stickyNote;
-                  });
-                  },
-                child: Icon(Icons.note)
-            ),
-          ],
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.edit),
+            label: 'pencil'
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.undo),
+            label: 'undo'
+          ),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.zoom_out_map),
+              label: 'selector'
+          )
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.amber[800],
+        unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
+      ),
       body: GestureDetector(
         onPanDown: (details) {
           final renderBox = context.findRenderObject() as RenderBox;
           final localPosition = renderBox.globalToLocal(details.globalPosition);
           setState(() {
-            updateCanvas(localPosition);
+            if (_currentTool == ToolType.pencil) {
+              _currentLine.lineOffsets.add(localPosition);
+            }
+            if (_currentTool == ToolType.eraser) { handleEraserEvent(localPosition); }
           });
         },
         onPanUpdate: (details) {
           final renderBox = context.findRenderObject() as RenderBox;
           final localPosition = renderBox.globalToLocal(details.globalPosition);
           setState(() {
-            updateCanvas(localPosition);
+            if (_currentTool == ToolType.pencil) {
+              _currentLine.lineOffsets.add(localPosition);
+            }
+            if (_currentTool == ToolType.eraser) { handleEraserEvent(localPosition); }
           });
         },
         onPanEnd: (details) {
-          setState(() {
-            _lineOffsets.add(null);
-          });
+          if (_currentTool == ToolType.pencil) {
+            // BUG: the lines are getting bigger
+            var _newLine = new LineElement(List.from(_currentLine.lineOffsets));
+            setState(() {
+              _currentLine.lineOffsets.add(null);
+              _lineElements.add(_newLine);
+            });
+          }
         },
         child: Center(
             child: CustomPaint(
-                painter: CanvasPainter(_stickyOffsets, _lineOffsets),
+                painter: CanvasPainter(_lineElements, _currentLine),
                 child: Container(
                   height: MediaQuery.of(context).size.height,
                   width: MediaQuery.of(context).size.width,
+                  child: Stack(children: canvasElements)
                 )
             )
         ),
@@ -112,19 +132,18 @@ class _CanvasPageState extends State<CanvasPage> {
     );
   }
 
-  void updateCanvas(Offset localPosition) {
-    if (_currentTool == ToolType.pencil) {
-      _lineOffsets.add(localPosition);
-    } else if (_currentTool == ToolType.stickyNote) {
-      _stickyOffsets.add(localPosition);
-    } else if (_currentTool == ToolType.eraser) {
-      // TODO: eraser is buggy
-      var offsetsToRemove = _lineOffsets.where((element) =>
-      element != null &&
-          (element.dx >= localPosition.dx - 10 && element.dx <= localPosition.dx + 10) &&
-          (element.dy >= localPosition.dy - 10 && element.dy <= localPosition.dy + 10)
-      );
-      offsetsToRemove.forEach((e) => _lineOffsets.remove(e));
+  void handlePencilEvent(Offset localPosition) {
+    _currentLine.lineOffsets.add(localPosition);
+  }
+
+  void handleEraserEvent(Offset localPosition) {
+    if (_lineElements.isEmpty == false) {
+      _lineElements.removeWhere((lineElement) => lineElement.lineOffsets.contains(localPosition));
     }
+    _currentLine = new LineElement(<Offset>[]);
+  }
+
+  void handleSelectorEvent(Offset localPosition) {
+    // TODO: add selector event for drag
   }
 }

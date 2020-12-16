@@ -4,27 +4,16 @@
 // utility that Flutter provides. For example, you can send tap and scroll
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:heiban/main.dart';
 
 void main() {
-  // TODO: add more tests
-  testWidgets('heiban smoke test', (WidgetTester tester) async {
+  testWidgets('heiban widget test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(MyApp());
-
-    expect(find.text('Settings'), findsOneWidget);
-    // expect(find.text('clearAll'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    // await tester.tap(find.byIcon(Icons.settings));
-    // await tester.pump();
-
-    // Verify that our counter has incremented.
-    // expect(find.text('Settings'), findsOneWidget);
-    // expect(find.text('clear'), findsOneWidget);
+    expect(find.byIcon(Icons.edit), findsOneWidget);
+    expect(find.byIcon(Icons.note), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_forward_outlined), findsOneWidget);
   });
 }

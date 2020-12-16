@@ -1,12 +1,14 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:heiban/main.dart';
+import 'package:heiban/sticky_note.dart';
 
 class CanvasPainter extends CustomPainter {
-  final List<Offset> stickyNoteOffsets;
-  final List<Offset> lineOffsets;
+  final List<LineElement> lineElements;
+  final LineElement currentLine;
 
-  CanvasPainter(this.stickyNoteOffsets, this.lineOffsets): super();
+  CanvasPainter(this.lineElements, this.currentLine): super();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -15,18 +17,14 @@ class CanvasPainter extends CustomPainter {
         ..isAntiAlias = true
         ..strokeWidth = 3;
 
-    final stickyNotePaint = Paint()
-        ..color = Colors.amber
-        ..isAntiAlias = true
-        ..strokeWidth = 3;
-
-    paintLines(canvas, linePaint);
-    for (var stickyOffset in stickyNoteOffsets) {
-      paintStickyNotes(stickyOffset, canvas, stickyNotePaint);
+    paintLines(canvas, linePaint, currentLine.lineOffsets);
+    for (var i = 0; i < lineElements.length-1; i++) {
+      paintLines(canvas, linePaint, lineElements[i].lineOffsets);
     }
+
   }
 
-  void paintLines(Canvas canvas, Paint paint) {
+  void paintLines(Canvas canvas, Paint paint, List<Offset> lineOffsets) {
     for (var i = 0; i < lineOffsets.length-1; i++) {
       if (lineOffsets[i] != null && lineOffsets[i + 1] != null) {
         canvas.drawLine(lineOffsets[i], lineOffsets[i+1], paint);
@@ -36,9 +34,10 @@ class CanvasPainter extends CustomPainter {
     }
   }
   
-  void paintStickyNotes(Offset offset, Canvas canvas, Paint paint) {
-    final height = 100.0, width = 100.0; // sticky note size
+  void paintStickyNotes(StickyNote stickyNote, Canvas canvas, Paint paint) {
+    final height = 150.0, width = 150.0; // sticky note size
 
+    Offset offset = stickyNote.stickyNoteOffset;
     Path path = new Path();
     path.moveTo(offset.dx, offset.dy);
     path.lineTo(offset.dx + width, offset.dy);
